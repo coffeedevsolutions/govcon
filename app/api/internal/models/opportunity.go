@@ -99,13 +99,17 @@ type Opportunity struct {
 	ArchiveDate       string `json:"archiveDate"`
 	TypeOfSetAside    string `json:"typeOfSetAside"`
 	TypeOfSetAsideDesc string `json:"typeOfSetAsideDesc"`
+	TypeOfSetAsideDescription string `json:"typeOfSetAsideDescription,omitempty"`
 	ResponseDeadline  string `json:"responseDeadline"`
 	NAICS             []struct {
 		Code        string `json:"code"`
 		Description string `json:"description"`
 	} `json:"naics"`
+	NAICSCode         string   `json:"naicsCode,omitempty"`
+	NAICSCodes        []string `json:"naicsCodes,omitempty"`
 	ClassificationCode string `json:"classificationCode"`
 	Active             FlexibleBool `json:"active"`
+	Award              interface{} `json:"award,omitempty"`
 	PointOfContact     []struct {
 		Fax           string `json:"fax"`
 		Type          string `json:"type"`
@@ -117,22 +121,33 @@ type Opportunity struct {
 	} `json:"pointOfContact"`
 	PlaceOfPerformance struct {
 		StreetAddress FlexibleString `json:"streetAddress"`
-		City          FlexibleString `json:"city"`
-		State         FlexibleString `json:"state"`
+		City          interface{} `json:"city"` // Can be string or object with code/name
+		State         interface{} `json:"state"` // Can be string or object with code/name
 		Zip           FlexibleString `json:"zip"`
-		Country       FlexibleString `json:"country"`
+		Country       interface{} `json:"country"` // Can be string or object with code/name
 	} `json:"placeOfPerformance"`
+	OfficeAddress      struct {
+		Zipcode     string `json:"zipcode,omitempty"`
+		City        string `json:"city,omitempty"`
+		CountryCode string `json:"countryCode,omitempty"`
+		State       string `json:"state,omitempty"`
+	} `json:"officeAddress,omitempty"`
 	Description        string `json:"description"`
 	Department         string `json:"department"`
 	SubTier            string `json:"subTier"`
 	Office            string `json:"office"`
 	SolicitationNumber string `json:"solicitationNumber,omitempty"`
+	FullParentPathName string `json:"fullParentPathName,omitempty"`
+	FullParentPathCode string `json:"fullParentPathCode,omitempty"`
 	AgencyPathName     string `json:"agencyPathName,omitempty"`
+	AdditionalInfoLink *string `json:"additionalInfoLink,omitempty"`
+	UILink             string `json:"uiLink,omitempty"`
 	Links              []struct {
 		Rel  string `json:"rel"`
 		Href string `json:"href"`
 		Type string `json:"type"`
 	} `json:"links"`
+	ResourceLinks      []string `json:"resourceLinks,omitempty"`
 	DescriptionStatus string `json:"descriptionStatus,omitempty"` // none | ready | not_found | error | available_unfetched
 }
 

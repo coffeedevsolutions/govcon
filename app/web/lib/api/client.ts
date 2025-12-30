@@ -21,13 +21,17 @@ export interface Opportunity {
   archiveDate?: string;
   typeOfSetAside?: string;
   typeOfSetAsideDesc?: string;
+  typeOfSetAsideDescription?: string;
   responseDeadline?: string;
   naics?: Array<{
     code: string;
     description: string;
   }>;
+  naicsCode?: string;
+  naicsCodes?: string[];
   classificationCode?: string;
   active: boolean;
+  award?: any | null; // Can be null, string, or object
   pointOfContact?: Array<{
     fax?: string;
     type?: string;
@@ -39,22 +43,42 @@ export interface Opportunity {
   }>;
   placeOfPerformance?: {
     streetAddress?: string;
-    city?: string;
-    state?: string;
+    city?: string | {
+      code?: string;
+      name?: string;
+    };
+    state?: string | {
+      code?: string;
+      name?: string;
+    };
     zip?: string;
-    country?: string;
+    country?: string | {
+      code?: string;
+      name?: string;
+    };
+  };
+  officeAddress?: {
+    zipcode?: string;
+    city?: string;
+    countryCode?: string;
+    state?: string;
   };
   description?: string;
   department?: string;
   subTier?: string;
   office?: string;
   solicitationNumber?: string;
+  fullParentPathName?: string;
+  fullParentPathCode?: string;
   agencyPathName?: string;
+  additionalInfoLink?: string | null;
+  uiLink?: string;
   links?: Array<{
     rel: string;
     href: string;
     type: string;
   }>;
+  resourceLinks?: string[];
   descriptionStatus?: string; // none | ready | not_found | error | available_unfetched
 }
 

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"log"
 	"net/http"
@@ -22,6 +23,10 @@ import (
 var (
 	spacePattern = regexp.MustCompile(`\s{2,}`)
 	htmlTagPattern = regexp.MustCompile(`<[^>]*>`)
+	// Pattern to match punctuation followed by HTML entities like .&nbsp;, ,&nbsp;, ;&nbsp;, etc.
+	punctuationEntityPattern = regexp.MustCompile(`([.,;:!?])(&nbsp;|&ensp;|&emsp;|&thinsp;)`)
+	// Pattern to match HTML formatting tags to preserve (case-insensitive)
+	formattingTagPattern = regexp.MustCompile(`(?i)</?(strong|b|em|i|u|br|p)(\s[^>]*)?/?>`)
 )
 
 // DescriptionService provides description-related operations
@@ -56,7 +61,7 @@ const (
 	maxExtractScanLength = 10 * 1024 * 1024 // 10MB max scan length
 	maxExtractedLength = 5 * 1024 * 1024    // 5MB max extracted description length
 	maxUnwrapRecursion = 2                   // Max recursion depth for UnwrapDescriptionText
-	NORMALIZATION_VERSION = 1                // Version of normalization logic - increment when NormalizeRaw, Normalize, or UnwrapDescriptionText changes
+	NORMALIZATION_VERSION = 4                // Version of normalization logic - increment when NormalizeRaw, Normalize, or UnwrapDescriptionText changes
 )
 
 // DetectSource analyzes the description field and determines the source type
@@ -522,11 +527,31 @@ func NormalizeRaw(rawText string) string {
 	return result
 }
 
+// stripNonFormattingTags removes HTML tags except formatting tags (strong, b, em, i, u, br, p)
+func stripNonFormattingTags(text string) string {
+	// Use ReplaceAllStringFunc to process each HTML tag
+	return htmlTagPattern.ReplaceAllStringFunc(text, func(tag string) string {
+		// If it's a formatting tag, keep it
+		if formattingTagPattern.MatchString(tag) {
+			return tag
+		}
+		// Otherwise, replace with space
+		return " "
+	})
+}
+
 // Normalize performs full normalization for display/search
-// Strips HTML tags, applies raw normalization, then cleans up pipe patterns, drops filler lines, and collapses excessive blank lines
+// Preserves HTML formatting tags (strong, b, em, i, u, br, p), strips other HTML tags, 
+// applies raw normalization, then cleans up pipe patterns, drops filler lines, and collapses excessive blank lines
 func Normalize(rawText string) string {
-	// Strip HTML tags first
-	normalized := htmlTagPattern.ReplaceAllString(rawText, " ")
+	// Strip non-formatting HTML tags first (preserve formatting tags like <strong>, <em>, etc.)
+	normalized := stripNonFormattingTags(rawText)
+	
+	// Clean up specific HTML entity patterns like .&nbsp; → . (remove the entity, keep punctuation)
+	normalized = punctuationEntityPattern.ReplaceAllString(normalized, "$1")
+	
+	// Decode remaining HTML entities (e.g., &rsquo; → ', &amp; → &)
+	normalized = html.UnescapeString(normalized)
 	
 	// Then apply raw normalization (line endings, whitespace)
 	normalized = NormalizeRaw(normalized)

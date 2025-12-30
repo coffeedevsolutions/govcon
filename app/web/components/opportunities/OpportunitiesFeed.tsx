@@ -2,9 +2,13 @@
 
 import { useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
 import { useOpportunitiesSearch } from '@/lib/hooks/useOpportunitiesSearch';
 import { type SearchOpportunitiesParams } from '@/lib/api/client';
 import { OpportunityCard } from './OpportunityCard';
+import { FilterPanel } from './FilterPanel';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function OpportunitiesFeed() {
   const searchParams = useSearchParams();
@@ -61,300 +65,90 @@ export function OpportunitiesFeed() {
   };
 
   return (
-    <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+    <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
       {/* Filter Panel */}
-      <div
-        style={{
-          width: 280,
-          flexShrink: 0,
-          padding: 20,
-          backgroundColor: '#f9f9f9',
-          borderRadius: 8,
-          border: '1px solid #e0e0e0',
-        }}
-      >
-        <div style={{ marginBottom: 24 }}>
-          <h2 style={{ margin: '0 0 16px 0', fontSize: 18, fontWeight: 600, color: '#1a1a1a' }}>Filters</h2>
-          <button
-            onClick={clearFilters}
-            style={{
-              padding: '6px 12px',
-              fontSize: 14,
-              backgroundColor: '#fff',
-              color: '#333',
-              border: '1px solid #ccc',
-              borderRadius: 4,
-              cursor: 'pointer',
-            }}
-          >
-            Clear All
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Keyword Search */}
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#333' }}>
-              Keyword Search
-            </label>
-            <input
-              type="text"
-              value={filters.q || ''}
-              onChange={(e) => updateFilters({ q: e.target.value || undefined })}
-              placeholder="Search title, solicitation, agency..."
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: 14,
-                color: '#333',
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                borderRadius: 4,
-              }}
-            />
-          </div>
-
-          {/* NAICS */}
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#333' }}>
-              NAICS Code
-            </label>
-            <input
-              type="text"
-              value={filters.naics || ''}
-              onChange={(e) => updateFilters({ naics: e.target.value || undefined })}
-              placeholder="e.g., 335311"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: 14,
-                color: '#333',
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                borderRadius: 4,
-              }}
-            />
-          </div>
-
-          {/* Set-Aside */}
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#333' }}>
-              Set-Aside
-            </label>
-            <input
-              type="text"
-              value={filters.setAside || ''}
-              onChange={(e) => updateFilters({ setAside: e.target.value || undefined })}
-              placeholder="e.g., SBA"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: 14,
-                color: '#333',
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                borderRadius: 4,
-              }}
-            />
-          </div>
-
-          {/* State */}
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#333' }}>
-              State
-            </label>
-            <input
-              type="text"
-              value={filters.state || ''}
-              onChange={(e) => updateFilters({ state: e.target.value || undefined })}
-              placeholder="e.g., MO"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: 14,
-                color: '#333',
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                borderRadius: 4,
-              }}
-            />
-          </div>
-
-          {/* Agency */}
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#333' }}>
-              Agency
-            </label>
-            <input
-              type="text"
-              value={filters.agency || ''}
-              onChange={(e) => updateFilters({ agency: e.target.value || undefined })}
-              placeholder="Agency name..."
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: 14,
-                color: '#333',
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                borderRadius: 4,
-              }}
-            />
-          </div>
-
-          {/* Posted Date Range */}
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#333' }}>
-              Posted Date
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <input
-                type="date"
-                value={filters.postedFrom || ''}
-                onChange={(e) => updateFilters({ postedFrom: e.target.value || undefined })}
-                placeholder="From"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  border: '1px solid #ccc',
-                  borderRadius: 4,
-                }}
-              />
-              <input
-                type="date"
-                value={filters.postedTo || ''}
-                onChange={(e) => updateFilters({ postedTo: e.target.value || undefined })}
-                placeholder="To"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  border: '1px solid #ccc',
-                  borderRadius: 4,
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Due Date Range */}
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#333' }}>
-              Response Deadline
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <input
-                type="date"
-                value={filters.dueFrom || ''}
-                onChange={(e) => updateFilters({ dueFrom: e.target.value || undefined })}
-                placeholder="From"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  border: '1px solid #ccc',
-                  borderRadius: 4,
-                }}
-              />
-              <input
-                type="date"
-                value={filters.dueTo || ''}
-                onChange={(e) => updateFilters({ dueTo: e.target.value || undefined })}
-                placeholder="To"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  border: '1px solid #ccc',
-                  borderRadius: 4,
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Sort */}
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, fontSize: 14, fontWeight: 500, color: '#333' }}>
-              Sort By
-            </label>
-            <select
-              value={filters.sort || 'posted_desc'}
-              onChange={(e) => updateFilters({ sort: e.target.value as any })}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: 14,
-                color: '#333',
-                backgroundColor: '#fff',
-                border: '1px solid #ccc',
-                borderRadius: 4,
-              }}
-            >
-              <option value="posted_desc">Posted Date (Newest First)</option>
-              <option value="due_asc">Response Deadline (Earliest First)</option>
-              <option value="relevance">Relevance</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <FilterPanel
+        filters={filters}
+        onFiltersChange={updateFilters}
+        onClearFilters={clearFilters}
+      />
 
       {/* Results Panel */}
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="flex-1 min-w-0">
         {loading && opportunities.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <p style={{ color: '#666' }}>Loading opportunities...</p>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg border border-blue-200 p-6">
+                <Skeleton className="h-6 w-3/4 mb-4" />
+                <Skeleton className="h-4 w-full mb-2" />
+                <Skeleton className="h-4 w-2/3" />
+              </div>
+            ))}
           </div>
         )}
 
         {error && opportunities.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 48 }}>
-            <p style={{ color: '#d32f2f' }}>Error: {error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-700 font-medium">Error: {error}</p>
+            <p className="text-red-600 text-sm mt-2">Please try adjusting your filters or refresh the page.</p>
           </div>
         )}
 
         {opportunities.length > 0 && (
           <>
-            <div style={{ marginBottom: 16, color: '#666' }}>
-              Showing {opportunities.length} opportunity{opportunities.length !== 1 ? 'ies' : ''}
+            <div className="mb-6 flex items-center justify-between">
+              <p className="text-slate-600">
+                Showing <span className="font-semibold text-slate-900">{opportunities.length}</span> opportunity{opportunities.length !== 1 ? 'ies' : ''}
+              </p>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div className="space-y-4">
               {opportunities.map((opportunity) => (
                 <OpportunityCard key={opportunity.noticeId} opportunity={opportunity} />
               ))}
             </div>
 
             {hasMore && (
-              <div style={{ marginTop: 32, textAlign: 'center' }}>
-                <button
+              <div className="mt-8 text-center">
+                <Button
                   onClick={loadMore}
                   disabled={loading}
-                  style={{
-                    padding: '12px 24px',
-                    fontSize: 16,
-                    cursor: loading ? 'not-allowed' : 'pointer',
-                    backgroundColor: loading ? '#ccc' : '#0070f3',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 4,
-                  }}
+                  className="min-w-[120px]"
                 >
-                  {loading ? 'Loading...' : 'Load More'}
-                </button>
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    'Load More'
+                  )}
+                </Button>
               </div>
             )}
 
             {!hasMore && opportunities.length > 0 && (
-              <div style={{ marginTop: 32, textAlign: 'center', color: '#666' }}>
-                <p>No more opportunities to load</p>
+              <div className="mt-8 text-center">
+                <p className="text-slate-500 text-sm">No more opportunities to load</p>
               </div>
             )}
           </>
         )}
 
         {!loading && opportunities.length === 0 && !error && (
-          <div style={{ textAlign: 'center', padding: 48, color: '#666' }}>
-            <p>No opportunities found. Try adjusting your filters.</p>
+          <div className="bg-white rounded-lg border border-blue-200 p-12 text-center">
+            <div className="max-w-md mx-auto">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">No opportunities found</h3>
+              <p className="text-slate-600 mb-4">Try adjusting your filters to find more results.</p>
+              <Button onClick={clearFilters} variant="outline">
+                Clear All Filters
+              </Button>
+            </div>
           </div>
         )}
       </div>

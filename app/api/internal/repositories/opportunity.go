@@ -202,23 +202,27 @@ func (r *OpportunityRepository) GetOpportunityByNoticeID(ctx context.Context, no
 	var opp models.Opportunity
 	var naicsJSON, contactJSON, placeJSON, linksJSON json.RawMessage
 	var activeBool bool
+	var rawDataJSON json.RawMessage
 
 	var solicitationNumber, agencyPathName *string
 	err := r.db.QueryRow(ctx, `
 		SELECT 
-			notice_id, title, organization_type, posted_date, type, base_type,
-			archive_type, archive_date, type_of_set_aside, type_of_set_aside_desc,
-			response_deadline, naics, classification_code, active,
-			point_of_contact, place_of_performance, description, department,
-			sub_tier, office, links, solicitation_number, agency_path_name
-		FROM opportunity
-		WHERE notice_id = $1
+			o.notice_id, o.title, o.organization_type, o.posted_date, o.type, o.base_type,
+			o.archive_type, o.archive_date, o.type_of_set_aside, o.type_of_set_aside_desc,
+			o.response_deadline, o.naics, o.classification_code, o.active,
+			o.point_of_contact, o.place_of_performance, o.description, o.department,
+			o.sub_tier, o.office, o.links, o.solicitation_number, o.agency_path_name,
+			COALESCE(r.raw_data, '{}'::jsonb)
+		FROM opportunity o
+		LEFT JOIN opportunity_raw r ON o.notice_id = r.notice_id
+		WHERE o.notice_id = $1
 	`, noticeID).Scan(
 		&opp.NoticeID, &opp.Title, &opp.OrganizationType, &opp.PostedDate, &opp.Type, &opp.BaseType,
 		&opp.ArchiveType, &opp.ArchiveDate, &opp.TypeOfSetAside, &opp.TypeOfSetAsideDesc,
 		&opp.ResponseDeadline, &naicsJSON, &opp.ClassificationCode, &activeBool,
 		&contactJSON, &placeJSON, &opp.Description, &opp.Department,
 		&opp.SubTier, &opp.Office, &linksJSON, &solicitationNumber, &agencyPathName,
+		&rawDataJSON,
 	)
 	if err != nil {
 		// Check if error is due to missing columns (migration not run)
@@ -253,6 +257,94 @@ func (r *OpportunityRepository) GetOpportunityByNoticeID(ctx context.Context, no
 	}
 	if len(linksJSON) > 0 {
 		json.Unmarshal(linksJSON, &opp.Links)
+	}
+
+	// Extract missing fields from raw_data
+	if len(rawDataJSON) > 0 {
+		var rawData map[string]interface{}
+		if err := json.Unmarshal(rawDataJSON, &rawData); err == nil {
+			// Extract fullParentPathName and fullParentPathCode
+			if val, ok := rawData["fullParentPathName"].(string); ok && val != "" {
+				opp.FullParentPathName = val
+			}
+			if val, ok := rawData["fullParentPathCode"].(string); ok && val != "" {
+				opp.FullParentPathCode = val
+			}
+
+			// Extract typeOfSetAsideDescription
+			if val, ok := rawData["typeOfSetAsideDescription"].(string); ok && val != "" {
+				opp.TypeOfSetAsideDescription = val
+			} else if val, ok := rawData["typeOfSetAsideDescription"]; ok && val != nil {
+				// Handle null explicitly
+				opp.TypeOfSetAsideDescription = ""
+			}
+
+			// Extract naicsCode and naicsCodes
+			if val, ok := rawData["naicsCode"].(string); ok && val != "" {
+				opp.NAICSCode = val
+			}
+			if val, ok := rawData["naicsCodes"].([]interface{}); ok {
+				naicsCodes := make([]string, 0, len(val))
+				for _, v := range val {
+					if str, ok := v.(string); ok {
+						naicsCodes = append(naicsCodes, str)
+					}
+				}
+				if len(naicsCodes) > 0 {
+					opp.NAICSCodes = naicsCodes
+				}
+			}
+
+			// Extract award (can be null, string, or object)
+			if val, ok := rawData["award"]; ok {
+				opp.Award = val // Store as-is (can be nil, string, or object)
+			}
+
+			// Extract officeAddress
+			if val, ok := rawData["officeAddress"].(map[string]interface{}); ok {
+				if zipcode, ok := val["zipcode"].(string); ok {
+					opp.OfficeAddress.Zipcode = zipcode
+				}
+				if city, ok := val["city"].(string); ok {
+					opp.OfficeAddress.City = city
+				}
+				if countryCode, ok := val["countryCode"].(string); ok {
+					opp.OfficeAddress.CountryCode = countryCode
+				}
+				if state, ok := val["state"].(string); ok {
+					opp.OfficeAddress.State = state
+				}
+			}
+
+			// Extract additionalInfoLink
+			if val, ok := rawData["additionalInfoLink"]; ok && val != nil {
+				if str, ok := val.(string); ok && str != "" {
+					opp.AdditionalInfoLink = &str
+				} else {
+					opp.AdditionalInfoLink = nil
+				}
+			}
+
+			// Extract uiLink
+			if val, ok := rawData["uiLink"].(string); ok && val != "" {
+				opp.UILink = val
+			}
+
+			// Extract resourceLinks
+			if val, exists := rawData["resourceLinks"]; exists && val != nil {
+				if arr, ok := val.([]interface{}); ok {
+					resourceLinks := make([]string, 0, len(arr))
+					for _, v := range arr {
+						if str, ok := v.(string); ok && str != "" {
+							resourceLinks = append(resourceLinks, str)
+						}
+					}
+					if len(resourceLinks) > 0 {
+						opp.ResourceLinks = resourceLinks
+					}
+				}
+			}
+		}
 	}
 
 	return &opp, nil
