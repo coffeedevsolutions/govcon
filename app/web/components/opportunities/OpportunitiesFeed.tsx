@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useOpportunitiesSearch } from '@/lib/hooks/useOpportunitiesSearch';
 import { type SearchOpportunitiesParams } from '@/lib/api/client';
@@ -9,8 +10,8 @@ export function OpportunitiesFeed() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Extract filter values from URL
-  const filters: SearchOpportunitiesParams = {
+  // Extract filter values from URL - memoize to prevent infinite loops
+  const filters: SearchOpportunitiesParams = useMemo(() => ({
     q: searchParams.get('q') || undefined,
     naics: searchParams.get('naics') || undefined,
     setAside: searchParams.get('setAside') || undefined,
@@ -22,7 +23,18 @@ export function OpportunitiesFeed() {
     dueTo: searchParams.get('dueTo') || undefined,
     sort: (searchParams.get('sort') as 'posted_desc' | 'due_asc' | 'relevance') || 'posted_desc',
     limit: 25,
-  };
+  }), [
+    searchParams.get('q'),
+    searchParams.get('naics'),
+    searchParams.get('setAside'),
+    searchParams.get('state'),
+    searchParams.get('agency'),
+    searchParams.get('postedFrom'),
+    searchParams.get('postedTo'),
+    searchParams.get('dueFrom'),
+    searchParams.get('dueTo'),
+    searchParams.get('sort'),
+  ]);
 
   const { opportunities, loading, error, hasMore, loadMore } = useOpportunitiesSearch({
     params: filters,

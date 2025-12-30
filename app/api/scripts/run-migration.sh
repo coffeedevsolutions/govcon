@@ -31,7 +31,14 @@ fi
 # Get the directory of this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 API_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-MIGRATION_FILE="$API_DIR/migrations/002_search_indexes.sql"
+
+# Accept migration file as argument, or default to latest
+MIGRATION_FILE="${1:-$API_DIR/migrations/003_opportunity_description.sql}"
+
+# If no argument provided and default doesn't exist, try 002
+if [ ! -f "$MIGRATION_FILE" ] && [ -z "$1" ]; then
+    MIGRATION_FILE="$API_DIR/migrations/002_search_indexes.sql"
+fi
 
 # Check if migration file exists
 if [ ! -f "$MIGRATION_FILE" ]; then

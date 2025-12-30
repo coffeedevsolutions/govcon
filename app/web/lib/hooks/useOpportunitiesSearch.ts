@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { apiClient, type SearchOpportunitiesParams, type SearchOpportunitiesResponse, type Opportunity } from '@/lib/api/client';
 
 interface UseOpportunitiesSearchOptions {
@@ -25,7 +25,7 @@ export function useOpportunitiesSearch(
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [currentParams, setCurrentParams] = useState<SearchOpportunitiesParams>(params);
+  const currentParamsKeyRef = useRef<string>('');
   
   const abortControllerRef = useRef<AbortController | null>(null);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,6 +73,13 @@ export function useOpportunitiesSearch(
     []
   );
 
+  // Serialize params for comparison (excluding cursor)
+  const paramsKey = useMemo(() => {
+    const paramsWithoutCursor = { ...params };
+    delete paramsWithoutCursor.cursor;
+    return JSON.stringify(paramsWithoutCursor);
+  }, [params]);
+
   // Debounced effect for search params changes
   useEffect(() => {
     // Clear previous debounce timer
@@ -80,14 +87,11 @@ export function useOpportunitiesSearch(
       clearTimeout(debounceTimerRef.current);
     }
 
-    // Reset cursor when params change (except cursor itself)
-    const paramsWithoutCursor = { ...params };
-    delete paramsWithoutCursor.cursor;
-
-    const paramsChanged = JSON.stringify(paramsWithoutCursor) !== JSON.stringify(currentParams);
+    // Check if params actually changed
+    const paramsChanged = paramsKey !== currentParamsKeyRef.current;
     if (paramsChanged) {
       setNextCursor(null);
-      setCurrentParams(paramsWithoutCursor);
+      currentParamsKeyRef.current = paramsKey;
     }
 
     // Debounce the fetch
@@ -104,7 +108,7 @@ export function useOpportunitiesSearch(
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [params, debounceMs, fetchOpportunities, currentParams]);
+  }, [paramsKey, debounceMs, fetchOpportunities, params]);
 
   const loadMore = useCallback(() => {
     if (nextCursor && !loading) {

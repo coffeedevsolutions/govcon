@@ -55,6 +55,7 @@ export interface Opportunity {
     href: string;
     type: string;
   }>;
+  descriptionStatus?: string; // none | ready | not_found | error | available_unfetched
 }
 
 export interface OpportunitiesParams {
@@ -87,6 +88,19 @@ export interface SearchOpportunitiesResponse {
     sort: string;
     appliedFilters: Record<string, string>;
   };
+}
+
+export interface OpportunityDescription {
+  noticeId: string;
+  status: 'fetched' | 'not_found' | 'none' | 'error' | 'available_unfetched';
+  sourceType: 'url' | 'inline' | 'none';
+  sourceUrl?: string;
+  rawText?: string;
+  rawPostParseText?: string;
+  normalizedText?: string;
+  rawJsonResponse?: string;
+  normalizationVersion?: number;
+  fetchedAt?: string;
 }
 
 class APIClient {
@@ -187,6 +201,23 @@ class APIClient {
     const endpoint = `/opportunities/search${queryString ? `?${queryString}` : ''}`;
 
     return this.request<SearchOpportunitiesResponse>(endpoint);
+  }
+
+  async getOpportunity(noticeId: string): Promise<Opportunity> {
+    const endpoint = `/opportunities/${noticeId}`;
+    return this.request<Opportunity>(endpoint);
+  }
+
+  async getOpportunityDescription(noticeId: string, refresh?: boolean): Promise<OpportunityDescription> {
+    const queryParams = new URLSearchParams();
+    if (refresh) {
+      queryParams.append('refresh', 'true');
+    }
+
+    const queryString = queryParams.toString();
+    const endpoint = `/opportunities/${noticeId}/description${queryString ? `?${queryString}` : ''}`;
+
+    return this.request<OpportunityDescription>(endpoint);
   }
 }
 

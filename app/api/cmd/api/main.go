@@ -5,10 +5,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"govcon/api/internal/handlers"
 	"govcon/api/internal/repositories"
+	"govcon/api/internal/services"
 )
 
 func main() {
@@ -25,11 +27,16 @@ func main() {
 	}
 	defer pool.Close()
 
-	// Initialize repository
+	// Initialize repositories
 	opportunityRepo := repositories.NewOpportunityRepository(pool)
+	descriptionRepo := repositories.NewDescriptionRepository(pool)
+
+	// Initialize services
+	samService := services.NewSAMService()
+	descriptionService := services.NewDescriptionService()
 
 	// Initialize handlers
-	opportunitiesHandler := handlers.NewOpportunitiesHandler(opportunityRepo)
+	opportunitiesHandler := handlers.NewOpportunitiesHandler(opportunityRepo, descriptionRepo, descriptionService, samService, pool)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -58,8 +65,18 @@ func main() {
 	// /opportunities/search must come before /opportunities/ to avoid route conflicts
 	mux.HandleFunc("/opportunities/search", opportunitiesHandler.HandleSearchV2)
 	mux.HandleFunc("/opportunities", opportunitiesHandler.HandleSearch) // Keep old endpoint for backward compatibility
-	// Handle individual opportunity by noticeId (must be last to catch /opportunities/:id)
+	
+	// Handle /opportunities/:id/description and /opportunities/:id with explicit path parsing
 	mux.HandleFunc("/opportunities/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		
+		// Check if this is a description request
+		if strings.HasSuffix(path, "/description") {
+			opportunitiesHandler.HandleGetDescription(w, r)
+			return
+		}
+		
+		// Otherwise, treat as regular opportunity detail
 		opportunitiesHandler.HandleGetOpportunity(w, r)
 	})
 

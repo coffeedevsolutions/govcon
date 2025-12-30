@@ -133,6 +133,7 @@ type Opportunity struct {
 		Href string `json:"href"`
 		Type string `json:"type"`
 	} `json:"links"`
+	DescriptionStatus string `json:"descriptionStatus,omitempty"` // none | ready | not_found | error | available_unfetched
 }
 
 // OpportunitiesResponse represents the SAM.gov API response

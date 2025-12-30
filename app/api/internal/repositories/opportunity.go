@@ -489,17 +489,26 @@ func (r *OpportunityRepository) SearchOpportunitiesV2(ctx context.Context, param
 		orderBy = "posted_date DESC NULLS LAST, notice_id ASC"
 	}
 
-	// Build SELECT query
+	// Build SELECT query with LEFT JOIN to opportunity_description for descriptionStatus
 	// Note: If migration hasn't been run, solicitation_number and agency_path_name columns won't exist
 	// The query will fail with a clear error that should prompt running the migration
 	query := fmt.Sprintf(`
 		SELECT 
-			notice_id, title, organization_type, posted_date, type, base_type,
-			archive_type, archive_date, type_of_set_aside, type_of_set_aside_desc,
-			response_deadline, naics, classification_code, active,
-			point_of_contact, place_of_performance, description, department,
-			sub_tier, office, links, solicitation_number, agency_path_name
-		FROM opportunity
+			o.notice_id, o.title, o.organization_type, o.posted_date, o.type, o.base_type,
+			o.archive_type, o.archive_date, o.type_of_set_aside, o.type_of_set_aside_desc,
+			o.response_deadline, o.naics, o.classification_code, o.active,
+			o.point_of_contact, o.place_of_performance, o.description, o.department,
+			o.sub_tier, o.office, o.links, o.solicitation_number, o.agency_path_name,
+			CASE
+				WHEN od.source_type = 'none' OR od.source_type IS NULL THEN 'none'
+				WHEN od.fetch_status = 'fetched' THEN 'ready'
+				WHEN od.fetch_status = 'not_found' THEN 'not_found'
+				WHEN od.fetch_status = 'error' THEN 'error'
+				WHEN od.fetch_status = 'not_requested' THEN 'available_unfetched'
+				ELSE 'available_unfetched'
+			END AS description_status
+		FROM opportunity o
+		LEFT JOIN opportunity_description od ON o.notice_id = od.notice_id
 		%s
 		ORDER BY %s
 		LIMIT $%d
@@ -526,6 +535,7 @@ func (r *OpportunityRepository) SearchOpportunitiesV2(ctx context.Context, param
 		var naicsJSON, contactJSON, placeJSON, linksJSON json.RawMessage
 		var activeBool bool
 		var solicitationNumber, agencyPathName *string
+		var descriptionStatus *string
 
 		err := rows.Scan(
 			&opp.NoticeID, &opp.Title, &opp.OrganizationType, &opp.PostedDate, &opp.Type, &opp.BaseType,
@@ -533,6 +543,7 @@ func (r *OpportunityRepository) SearchOpportunitiesV2(ctx context.Context, param
 			&opp.ResponseDeadline, &naicsJSON, &opp.ClassificationCode, &activeBool,
 			&contactJSON, &placeJSON, &opp.Description, &opp.Department,
 			&opp.SubTier, &opp.Office, &linksJSON, &solicitationNumber, &agencyPathName,
+			&descriptionStatus,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan opportunity: %w", err)
@@ -545,13 +556,8 @@ func (r *OpportunityRepository) SearchOpportunitiesV2(ctx context.Context, param
 		if agencyPathName != nil {
 			opp.AgencyPathName = *agencyPathName
 		}
-
-		// Assign optional fields
-		if solicitationNumber != nil {
-			opp.SolicitationNumber = *solicitationNumber
-		}
-		if agencyPathName != nil {
-			opp.AgencyPathName = *agencyPathName
+		if descriptionStatus != nil {
+			opp.DescriptionStatus = *descriptionStatus
 		}
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan opportunity: %w", err)

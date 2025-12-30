@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { type Opportunity } from '@/lib/api/client';
 
 interface OpportunityCardProps {
@@ -14,6 +15,40 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
     }
   };
 
+  const getStatusBadgeColor = (status?: string) => {
+    switch (status) {
+      case 'ready':
+        return '#4caf50';
+      case 'available_unfetched':
+        return '#ff9800';
+      case 'not_found':
+        return '#f44336';
+      case 'error':
+        return '#f44336';
+      case 'none':
+        return '#9e9e9e';
+      default:
+        return '#9e9e9e';
+    }
+  };
+
+  const getStatusLabel = (status?: string) => {
+    switch (status) {
+      case 'ready':
+        return 'Description Ready';
+      case 'available_unfetched':
+        return 'Description Available';
+      case 'not_found':
+        return 'No Description';
+      case 'error':
+        return 'Error';
+      case 'none':
+        return 'No Description';
+      default:
+        return '';
+    }
+  };
+
   return (
     <div
       style={{
@@ -25,12 +60,33 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
       }}
     >
       <div style={{ marginBottom: 12 }}>
-        <h2 style={{ margin: 0, fontSize: 20, color: '#0070f3' }}>
-          {opportunity.title || 'Untitled Opportunity'}
-        </h2>
-        <p style={{ margin: '4px 0', fontSize: 14, color: '#666' }}>
-          Notice ID: {opportunity.noticeId}
-        </p>
+        <Link
+          href={`/opportunities/${opportunity.noticeId}`}
+          style={{ textDecoration: 'none', color: 'inherit' }}
+        >
+          <h2 style={{ margin: 0, fontSize: 20, color: '#0070f3', cursor: 'pointer' }}>
+            {opportunity.title || 'Untitled Opportunity'}
+          </h2>
+        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+          <p style={{ margin: 0, fontSize: 14, color: '#666' }}>
+            Notice ID: {opportunity.noticeId}
+          </p>
+          {opportunity.descriptionStatus && (
+            <span
+              style={{
+                fontSize: 11,
+                padding: '2px 8px',
+                borderRadius: 12,
+                backgroundColor: getStatusBadgeColor(opportunity.descriptionStatus),
+                color: 'white',
+                fontWeight: 500,
+              }}
+            >
+              {getStatusLabel(opportunity.descriptionStatus)}
+            </span>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginBottom: 12, color: '#333' }}>
@@ -52,15 +108,6 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
         )}
       </div>
 
-      {opportunity.description && (
-        <div style={{ marginBottom: 12 }}>
-          <p style={{ margin: 0, color: '#333', lineHeight: 1.6 }}>
-            {opportunity.description.length > 300
-              ? `${opportunity.description.substring(0, 300)}...`
-              : opportunity.description}
-          </p>
-        </div>
-      )}
 
       {opportunity.naics && opportunity.naics.length > 0 && (
         <div style={{ marginBottom: 12, color: '#333' }}>
